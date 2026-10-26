@@ -71,7 +71,7 @@ const MIX = {
   skills: [
     'Skills & agents',
     'Loaded skills and subagent reports',
-    'Skill instructions loaded with the Skill tool, and what subagents and background tasks reported back, one row per skill or agent.',
+    "Skill instructions loaded with the Skill tool, and what subagents and background tasks reported back, one row per skill or agent. Claude loads a skill when you type its /command, and also on its own when a task matches the skill's description, so a skill can be here without you asking for it.",
   ],
 }
 

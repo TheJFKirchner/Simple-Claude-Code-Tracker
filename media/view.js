@@ -9,6 +9,8 @@ let wasDead = null
 const STATUS = ['var(--good)', 'var(--warning)', 'var(--serious)', 'var(--critical)']
 const ICON = ['✓', '!', '!', '✕']
 const FOLLOWING = { pinned: 'pinned', open: 'open conversation', latest: 'latest' }
+// After the model name: nothing when the name matched the price table, else what it is priced as.
+const PRICED = { name: () => '', mapped: id => ` · priced as ${id}`, guessed: id => ` · price guessed (${id})` }
 
 // Sections open by default; the user's toggles are saved by the extension and sent with each snapshot.
 const OPEN_BY_DEFAULT = { next: true, context: true, cost: false, threads: false, flags: false }
@@ -112,9 +114,10 @@ function header() {
       h(
         'span',
         {},
-        snap.model
-          ? `${snap.model} · ${tok(snap.window)} window${snap.isModelKnown ? '' : ' (price guessed)'}`
-          : 'no messages yet',
+        snap.model ? `${snap.model} · ${tok(snap.window)} window${PRICED[snap.priceMatch](snap.pricedAs)}` : 'no messages yet',
+        snap.model && snap.priceMatch === 'guessed'
+          ? h('a', { class: 'link', onclick: () => vscode.postMessage({ type: 'configure' }) }, ' · set')
+          : null,
       ),
       h(
         'a',
@@ -243,7 +246,7 @@ function nextMessage(now) {
       { class: 'small muted' },
       `Quick one-request reply: ${usd(c.quickWarmCost + (dead ? c.recacheCost : 0))}` +
         (c.lastTurnCost !== null ? ` · last turn cost ${usd(c.lastTurnCost)}` : '') +
-        '. API list prices.',
+        (snap.customPrices ? '. Your prices.' : '. API list prices.'),
     ),
   )
 }

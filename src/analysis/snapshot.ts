@@ -1,4 +1,4 @@
-import { addCost, modelInfo, promptTokens } from '../data/pricing'
+import { addCost, hasCustomPrices, modelInfo, promptTokens } from '../data/pricing'
 import type { Session } from '../data/transcript'
 import { cacheEvents } from './cacheEvents'
 import { cacheState } from './estimate'
@@ -119,6 +119,9 @@ export function buildSnapshot(session: Session, thresholds: Thresholds, windowOv
     title: main.title,
     model,
     isModelKnown: info.known,
+    pricedAs: info.id,
+    priceMatch: info.match,
+    customPrices: hasCustomPrices(),
     window,
     contextTokens,
     contextPercent,

@@ -4,8 +4,10 @@ import * as vscode from 'vscode'
 import { buildSnapshot } from '../analysis/snapshot'
 import type { Snapshot } from '../analysis/types'
 import { listSessions, liveSessions, quickTitle, transcriptFile } from '../data/discovery'
+import { priceVersion, setPriceOverrides } from '../data/pricing'
 import { Session } from '../data/transcript'
 import { saveCostLimit, settings, workspaceDirs, workspacePaths } from '../settings'
+import { ConfigPanel } from './configPanel'
 import { DetailPanel } from './detailPanel'
 import { StatusBar } from './statusBar'
 import { webviewHtml } from './webviewShell'
@@ -21,7 +23,9 @@ export class Monitor implements vscode.WebviewViewProvider, vscode.Disposable {
   private view: vscode.WebviewView | undefined
   private readonly status = new StatusBar()
   private readonly detail: DetailPanel
+  private readonly config: ConfigPanel
   private ticks = 0
+  private pricedAt = -1
 
   // state: where the open/closed sections are remembered, across reloads and workspaces.
   constructor(
@@ -30,6 +34,7 @@ export class Monitor implements vscode.WebviewViewProvider, vscode.Disposable {
   ) {
     this.detail = new DetailPanel(extensionUri)
     this.detail.onRequest = () => this.detail.update(this.session, this.snapshot?.contextTokens ?? 0)
+    this.config = new ConfigPanel(extensionUri)
   }
 
   resolveWebviewView(view: vscode.WebviewView): void {
@@ -43,12 +48,20 @@ export class Monitor implements vscode.WebviewViewProvider, vscode.Disposable {
       if (m?.type === 'setLimit') void this.setCostLimit()
       if (m?.type === 'detail') this.detail.show(m.part, this.session, this.snapshot?.contextTokens ?? 0)
       if (m?.type === 'section') void this.saveSection(m.id, !!m.open)
+      if (m?.type === 'configure') this.configure()
     })
     view.onDidChangeVisibility(() => view.visible && this.post())
   }
 
   tick(): void {
     const s = settings()
+    // New prices or model map: every figure is re-priced from the transcript's token counts.
+    setPriceOverrides(s.prices)
+    if (priceVersion() !== this.pricedAt) {
+      this.pricedAt = priceVersion()
+      this.snapshot = undefined
+      this.config.update()
+    }
     this.follow(s.root, this.ticks++ % 4 === 0)
     if (!this.session) {
       this.snapshot = undefined
@@ -79,7 +92,8 @@ export class Monitor implements vscode.WebviewViewProvider, vscode.Disposable {
   }
 
   // Section: Commands
-  // Choose a session, go back to following the open conversation, set the cost limit.
+  // Choose a session, go back to following the open conversation, set the cost limit, configure
+  // prices and models.
   async choose(): Promise<void> {
     const root = settings().root
     const open = new Set(liveSessions(root, workspacePaths()).map(l => transcriptFile(root, l).toLowerCase()))
@@ -115,6 +129,10 @@ export class Monitor implements vscode.WebviewViewProvider, vscode.Disposable {
     this.tick()
   }
 
+  configure(): void {
+    this.config.show()
+  }
+
   private async saveSection(id: string, open: boolean): Promise<void> {
     await this.state.update('sections', { ...this.state.get<Record<string, boolean>>('sections', {}), [id]: open })
   }
@@ -132,5 +150,6 @@ export class Monitor implements vscode.WebviewViewProvider, vscode.Disposable {
   dispose(): void {
     this.status.dispose()
     this.detail.dispose()
+    this.config.dispose()
   }
 }

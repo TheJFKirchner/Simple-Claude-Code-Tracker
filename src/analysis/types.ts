@@ -1,5 +1,5 @@
 import type { MixPart } from '../data/contextMix'
-import type { CostParts, Usage } from '../data/pricing'
+import type { CostParts, Match, Usage } from '../data/pricing'
 
 // Section: Settings-driven limits
 // Thresholds the user can tune; read from settings each tick.
@@ -89,6 +89,10 @@ export type Snapshot = {
   title: string
   model: string
   isModelKnown: boolean
+  // The price-table model it is priced as, how that was decided, and whether the user's prices apply.
+  pricedAs: string
+  priceMatch: Match
+  customPrices: boolean
   window: number
   contextTokens: number
   contextPercent: number

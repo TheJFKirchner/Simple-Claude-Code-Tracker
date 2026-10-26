@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { cacheEvents } from '../analysis/cacheEvents'
 import { cacheState } from '../analysis/estimate'
 import { handoffEstimate } from '../analysis/handoff'
-import { modelInfo } from '../data/pricing'
+import { costOf, hasCustomPrices, modelInfo, nameMatch, NO_OVERRIDES, priceVersion, setPriceOverrides } from '../data/pricing'
 import { Thread } from '../data/transcript'
 
 // Section: Fixtures
@@ -110,4 +110,52 @@ test('prices.json loads; dated model ids match their family, unknown ones fall b
   assert.equal(opus.card.write1h, 8)
   assert.equal(modelInfo('some-other-model').known, false)
   assert.equal(modelInfo('claude-haiku-5-5').longAbove, 100_000)
+})
+
+test('provider-wrapped names match the price table', () => {
+  for (const name of ['eu.anthropic.claude-sonnet-5-5', 'global.anthropic.claude-sonnet-5-5-v1:0', 'bedrock/us.anthropic.claude-sonnet-5-5', 'anthropic/claude-sonnet-5-5']) {
+    const info = modelInfo(name)
+    assert.equal(info.id, 'claude-sonnet-5-5', name)
+    assert.equal(info.match, 'name', name)
+  }
+  assert.equal(modelInfo('opus-prod').match, 'guessed')
+})
+
+test('the model map wins over the name match: exact name first, then the longest prefix', () => {
+  try {
+    setPriceOverrides({ ...NO_OVERRIDES, modelMap: { 'Opus-Prod': 'claude-opus-5-5', 'arn:aws:bedrock:': 'claude-sonnet-5-5', 'arn:aws:bedrock:eu': 'claude-haiku-5-5', 'x': 'not-a-model' } })
+    assert.deepEqual([modelInfo('opus-prod').id, modelInfo('opus-prod').match, modelInfo('opus-prod').rule], ['claude-opus-5-5', 'mapped', 'opus-prod'])
+    assert.equal(modelInfo('arn:aws:bedrock:us-east-1:1:application-inference-profile/abc').id, 'claude-sonnet-5-5')
+    assert.equal(modelInfo('arn:aws:bedrock:eu-west-1:1:application-inference-profile/abc').id, 'claude-haiku-5-5')
+    // A rule pointing at a model the table does not have is ignored.
+    assert.equal(modelInfo('xyz').match, 'guessed')
+    assert.equal(nameMatch('opus-prod').match, 'guessed')
+  } finally {
+    setPriceOverrides(NO_OVERRIDES)
+  }
+})
+
+test('custom prices: a discount scales every list price, per-model figures replace it, long cards follow', () => {
+  try {
+    const v = priceVersion()
+    assert.equal(setPriceOverrides({ ...NO_OVERRIDES, discountPercent: 25, models: { 'claude-haiku-5-5': { input: 0.2 } } }), true)
+    assert.equal(priceVersion(), v + 1)
+    assert.equal(hasCustomPrices(), true)
+    const opus = modelInfo('claude-opus-5-5').card
+    assert.deepEqual([opus.input, opus.output, opus.write5m, opus.write1h], [3, 15, 3.75, 6])
+    assert.ok(Math.abs(opus.read - 0.15) < 1e-12)
+    const haiku = modelInfo('claude-haiku-5-5')
+    assert.equal(haiku.card.input, 0.2)
+    assert.equal(haiku.card.output, 0.375)
+    // Input doubled against list, so the over-100K input price doubles too; output follows the discount.
+    assert.equal(haiku.longCard!.input, 1)
+    assert.equal(haiku.longCard!.output, 1.875)
+    const cost = costOf({ input: 1e6, output: 0, cacheRead: 0, write5m: 0, write1h: 0 }, 'claude-opus-5-5')
+    assert.equal(cost.total, 3)
+    assert.equal(setPriceOverrides({ ...NO_OVERRIDES, discountPercent: 25, models: { 'claude-haiku-5-5': { input: 0.2 } } }), false)
+  } finally {
+    setPriceOverrides(NO_OVERRIDES)
+  }
+  assert.equal(hasCustomPrices(), false)
+  assert.equal(modelInfo('claude-opus-5-5').card.input, 4)
 })

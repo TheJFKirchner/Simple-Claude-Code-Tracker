@@ -24,8 +24,14 @@
     "commands": [
       { "command": "sessionMonitor.chooseSession", "title": "Session Monitor: Choose session" },
       { "command": "sessionMonitor.followLatest", "title": "Session Monitor: Follow open conversation" },
-      { "command": "sessionMonitor.setCostLimit", "title": "Session Monitor: Set session cost limit" }
+      { "command": "sessionMonitor.setCostLimit", "title": "Session Monitor: Set session cost limit" },
+      { "command": "sessionMonitor.configure", "title": "Session Monitor: Configure prices and models", "icon": "$(gear)" }
     ],
+    "menus": {
+      "view/title": [
+        { "command": "sessionMonitor.configure", "when": "view == sessionMonitor.panel", "group": "navigation" }
+      ]
+    },
     "configuration": {
       "title": "Claude Session Monitor",
       "properties": {
@@ -48,12 +54,34 @@
           "type": "number",
           "default": 0,
           "minimum": 0,
-          "description": "Session cost in USD (API list prices) at which the panel and status bar turn red. 0 turns it off."
+          "description": "Session cost in USD (at the prices in use: API list prices unless you set your own) at which the panel and status bar turn red. 0 turns it off."
         },
         "sessionMonitor.longSessionRereads": {
           "type": "number",
           "default": 30,
           "description": "Re-read multiplier (cache reads ÷ current context) at which a session is flagged as long. 0 turns it off."
+        },
+        "sessionMonitor.customPrices": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "discountPercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "Percent off every API list price." },
+            "models": {
+              "type": "object",
+              "description": "Per model (a price-table id such as claude-opus-5-5): input, output and cacheRead in USD per million tokens. Each replaces that list price; cache writes follow input.",
+              "additionalProperties": {
+                "type": "object",
+                "properties": { "input": { "type": "number", "minimum": 0 }, "output": { "type": "number", "minimum": 0 }, "cacheRead": { "type": "number", "minimum": 0 } }
+              }
+            }
+          },
+          "markdownDescription": "Your own prices, if you don't pay API list prices. Easiest to set with **Session Monitor: Configure prices and models** (the gear on the panel)."
+        },
+        "sessionMonitor.modelMap": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": { "type": "string" },
+          "markdownDescription": "Model names as Claude Code records them (or the start of one) → the price-table model to price them as, e.g. `{ \"opus-prod\": \"claude-opus-5-5\" }`. Checked before the built-in name match. Easiest to set with **Session Monitor: Configure prices and models**."
         },
         "sessionMonitor.thresholds": {
           "type": "object",

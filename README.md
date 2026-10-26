@@ -18,7 +18,15 @@ Then run "Developer: Reload Window". To install on another machine without build
 
 ## Prices
 
-Every dollar figure comes from `prices.json` at the top of this folder: US dollars per million tokens per model, cache-write multipliers, context windows. Edit it and run `npm run install-ext` again. The defaults are Anthropic's public API list prices; change them if you pay different rates (Bedrock, Vertex, negotiated).
+Dollar figures start from `prices.json` at the top of this folder: Anthropic's public API list prices in US dollars per million tokens, cache-write multipliers and context windows. It ships with the extension; to change the list itself, edit it and run `npm run install-ext` again.
+
+If you pay different rates (an enterprise agreement, Bedrock, Vertex), click the gear at the top of the panel ("Session Monitor: Configure prices and models"). The tab that opens has three parts:
+
+- **Your models**: every model name found in your transcripts, what it is priced as, and why (recognised by name, set by you, by a rule, or not recognised and priced as the fallback model). Pick a model to price a name as.
+- **Rules**: names, or the start of names, mapped to a model, for names that change, such as Bedrock inference-profile ARNs or gateway aliases.
+- **Prices**: a discount off every list price, and per-model input, output and cache-read prices that replace it. Cache writes follow input; Haiku's over-100K prices move by the same ratio.
+
+Changes are saved to your settings (`sessionMonitor.customPrices`, `sessionMonitor.modelMap`) and re-price every session at once, past ones included, because costs are worked out from the token counts in the transcripts. When a workspace sets them in `.vscode/settings.json`, edits are saved there, so a team can share one setup by committing that file. Names are matched without regard to case: the model map first (exact name, then the longest rule the name starts with), then the price table after removing provider wrapping (`eu.anthropic.`, `global.anthropic.`, ARN and gateway paths), then the fallback model, shown as "price guessed".
 
 ## What the panel shows
 
@@ -39,9 +47,11 @@ Section headings collapse; your choices are remembered.
 | `sessionMonitor.freshSessionTokens` | 200000 | Context size that suggests a new session. |
 | `sessionMonitor.longSessionRereads` | 30 | Re-read multiplier that flags a long session. |
 | `sessionMonitor.contextWindow` | 0 (from model) | Override the context window. |
+| `sessionMonitor.customPrices` | none | Your prices: `discountPercent`, and `models` with per-model `input` / `output` / `cacheRead`. Set from the gear. |
+| `sessionMonitor.modelMap` | none | Recorded model name (or the start of one) → price-table model. Set from the gear. |
 | `sessionMonitor.claudeConfigDir` | `CLAUDE_CONFIG_DIR`, else `~/.claude` | Claude Code's config folder. |
 
-Commands: "Choose session" pins a conversation; "Follow open conversation" goes back to following the live one.
+Commands: "Choose session" pins a conversation; "Follow open conversation" goes back to following the live one; "Configure prices and models" opens the prices tab (also the gear on the panel).
 
 ## How it finds the conversation
 
@@ -61,10 +71,10 @@ src/
   settings.ts           extension settings, saved cost limit, transcript folders for the workspace
   data/                 reading Claude Code's files: transcript parser, context mix, session discovery, prices
   analysis/             a session → snapshot: next-message estimate, cache events, flags, advice, handoff
-  ui/                   panel provider and session following, detail tab, status bar, webview HTML shell
+  ui/                   panel provider and session following, detail tab, prices tab, status bar, webview HTML shell
   test/                 node:test suite on synthetic transcripts
-media/                  panel (view.js/.css), detail tab (detail.js/.css), shared helpers (common.js), icon
+media/                  panel (view.js/.css), detail tab (detail.js/.css), prices tab (config.js/.css), shared helpers (common.js), icon
 scripts/backtest.js     checks the next-message estimate against past sessions (npm run backtest)
-prices.json             the price table
+prices.json             the list-price table
 overview.html           one-page, non-technical overview for coworkers
 ```

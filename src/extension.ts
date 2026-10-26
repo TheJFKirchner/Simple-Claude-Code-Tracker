@@ -14,6 +14,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('sessionMonitor.chooseSession', () => monitor.choose()),
     vscode.commands.registerCommand('sessionMonitor.followLatest', () => monitor.followLatest()),
     vscode.commands.registerCommand('sessionMonitor.setCostLimit', () => monitor.setCostLimit()),
+    vscode.commands.registerCommand('sessionMonitor.configure', () => monitor.configure()),
+    // Price edits show at once rather than on the next poll.
+    vscode.workspace.onDidChangeConfiguration(e => e.affectsConfiguration('sessionMonitor') && monitor.tick()),
   )
   monitor.tick()
   const timer = setInterval(() => monitor.tick(), 1500)
