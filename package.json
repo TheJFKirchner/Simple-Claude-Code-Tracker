@@ -1,0 +1,80 @@
+{
+  "name": "claude-session-monitor",
+  "displayName": "Claude Session Monitor",
+  "description": "Context buildup, token costs, subagents, cache TTL and next-message cost for the current Claude Code session",
+  "version": "0.1.0",
+  "publisher": "internal",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Visualization", "Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "sessionMonitor", "title": "Session Monitor", "icon": "media/icon.svg" }
+      ]
+    },
+    "views": {
+      "sessionMonitor": [
+        { "type": "webview", "id": "sessionMonitor.panel", "name": "Claude session" }
+      ]
+    },
+    "commands": [
+      { "command": "sessionMonitor.chooseSession", "title": "Session Monitor: Choose session" },
+      { "command": "sessionMonitor.followLatest", "title": "Session Monitor: Follow open conversation" },
+      { "command": "sessionMonitor.setCostLimit", "title": "Session Monitor: Set session cost limit" }
+    ],
+    "configuration": {
+      "title": "Claude Session Monitor",
+      "properties": {
+        "sessionMonitor.claudeConfigDir": {
+          "type": "string",
+          "default": "",
+          "description": "Claude Code config folder. Empty: CLAUDE_CONFIG_DIR, else ~/.claude."
+        },
+        "sessionMonitor.contextWindow": {
+          "type": "number",
+          "default": 0,
+          "description": "Context window in tokens. 0: from the session's model."
+        },
+        "sessionMonitor.freshSessionTokens": {
+          "type": "number",
+          "default": 200000,
+          "description": "Context size in tokens at which the advice becomes 'think about starting a new session'. 0 turns it off."
+        },
+        "sessionMonitor.sessionCostLimit": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Session cost in USD (API list prices) at which the panel and status bar turn red. 0 turns it off."
+        },
+        "sessionMonitor.longSessionRereads": {
+          "type": "number",
+          "default": 30,
+          "description": "Re-read multiplier (cache reads ÷ current context) at which a session is flagged as long. 0 turns it off."
+        },
+        "sessionMonitor.thresholds": {
+          "type": "object",
+          "default": { "consider": 50, "wrapUp": 75, "stop": 90 },
+          "description": "Context % of the window at which the advice moves to 'think about starting a new session', 'wrap up', and 'don't send another message'."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "test": "tsc -p . && node --test \"out/test/**/*.test.js\"",
+    "backtest": "tsc -p . && node scripts/backtest.js",
+    "watch": "tsc -w -p .",
+    "package": "npm run compile && vsce package --allow-missing-repository --skip-license -o session-monitor.vsix",
+    "install-ext": "npm run package && code --install-extension session-monitor.vsix --force"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "3.2.1",
+    "typescript": "5.6.3"
+  }
+}

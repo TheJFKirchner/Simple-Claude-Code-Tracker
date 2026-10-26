@@ -1,0 +1,154 @@
+/* Section: Tokens
+   Series and status colors per VS Code theme; text always uses the theme's ink. */
+body {
+  --series: #2a78d6;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --track: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+  --grid: color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+  --muted: var(--vscode-descriptionForeground);
+  --surface: var(--vscode-sideBar-background);
+  background: var(--surface);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 8px 12px 24px;
+  margin: 0;
+}
+body.vscode-dark,
+body.vscode-high-contrast {
+  --series: #3987e5;
+}
+/* Context mix: the 8 categorical slots in validated order, plus two neutrals (overhead, other files). */
+body {
+  --mix-overhead: #898781; --mix-you: #2a78d6; --mix-replies: #eb6834; --mix-thinking: #1baf7a; --mix-md: #eda100;
+  --mix-scripts: #e87ba4; --mix-sql: #008300; --mix-otherFiles: #b4b3ac; --mix-commands: #6250d6; --mix-skills: #e34948;
+}
+body.vscode-dark,
+body.vscode-high-contrast {
+  --mix-overhead: #6f6e69; --mix-you: #3987e5; --mix-replies: #d95926; --mix-thinking: #199e70; --mix-md: #c98500;
+  --mix-scripts: #d55181; --mix-sql: #008300; --mix-otherFiles: #a3a29c; --mix-commands: #9085e9; --mix-skills: #e66767;
+}
+/* The whole panel turns dark red once the cache TTL has expired. */
+body.ttl-dead {
+  --surface: color-mix(in srgb, var(--critical) 16%, var(--vscode-sideBar-background));
+}
+
+/* Section: Layout
+   Stacked sections with small headings. */
+.section { margin: 14px 0 0; }
+.section h3 {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); margin: 0 0 6px;
+}
+/* A heading toggles its section; a closed one shows a short summary on the right. */
+.section h3.toggle { display: flex; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; }
+.section h3.toggle:hover { color: var(--vscode-foreground); }
+.section h3 .sum { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.muted { color: var(--muted); }
+.small { font-size: 11px; }
+.row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.num { font-variant-numeric: tabular-nums; }
+.link { color: var(--vscode-textLink-foreground); cursor: pointer; text-decoration: none; }
+.title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Section: Advice and banners
+   Status color sits on the icon only; the label stays in text ink. */
+.advice { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 6px; background: var(--track); }
+.advice .icon {
+  flex: none; width: 18px; height: 18px; border-radius: 50%; color: #fff;
+  display: grid; place-items: center; font-size: 11px; font-weight: 700;
+}
+.advice .label { font-weight: 600; }
+.banner {
+  margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+  border-left: 3px solid var(--critical); background: color-mix(in srgb, var(--critical) 14%, transparent);
+}
+.banner strong { display: block; margin-bottom: 2px; }
+
+/* Section: Flag cards
+   One row per flag: status dot, title, detail, and a tip line. */
+.flag { display: flex; gap: 8px; padding: 6px 0; border-top: 1px solid var(--track); }
+.flag .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+.flag .label { font-weight: 600; }
+.tipline { font-size: 11px; margin-top: 3px; }
+
+/* Section: Figures
+   Stat tile for the next-message estimate and the context meter. */
+.value.tile { font-size: 22px; font-weight: 600; margin: 2px 0; }
+.meter { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; margin: 4px 0; }
+.meter > div { height: 100%; border-radius: 4px; }
+
+/* Section: Column chart
+   Context per turn: thin bars, 2px gaps, 4px rounded tops anchored to the baseline. */
+.chart { position: relative; height: 100px; margin: 4px 0 2px; border-bottom: 1px solid var(--grid); }
+.chart .cols { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; }
+.chart .col { flex: 1 1 0; max-width: 14px; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+.chart .bar { width: 100%; background: var(--series); border-radius: 4px 4px 0 0; min-height: 1px; }
+.chart .col:hover .bar { filter: brightness(1.25); }
+.chart .line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--grid); z-index: 1; pointer-events: none; }
+/* Threshold label sits at the left, just above its line, on the panel color so bars never cover it. */
+.chart .line span {
+  position: absolute; left: 0; bottom: 1px; padding: 0 4px 0 0; font-size: 10px; line-height: 12px;
+  color: var(--muted); background: var(--surface); border-radius: 0 3px 3px 0;
+}
+.axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+.buildup { margin-top: 10px; }
+
+/* Section: Bar list
+   Horizontal bars for cost by category and per-thread share. */
+.hbar { margin: 6px 0; }
+.hbar .track { height: 6px; border-radius: 3px; background: var(--track); margin-top: 3px; }
+.hbar .fill { height: 100%; border-radius: 3px; background: var(--series); min-width: 2px; }
+/* The exact "now" bar is neutral so the estimated handoff bars stand out against it. */
+.hbar .fill.now { background: color-mix(in srgb, var(--vscode-foreground) 45%, transparent); }
+
+/* Section: Threads
+   Main thread first, subagents indented beneath by spawn depth. */
+.thread { padding: 6px 0 6px 0; border-top: 1px solid var(--track); }
+.thread.child { border-left: 2px solid var(--grid); padding-left: 8px; }
+.badge {
+  font-size: 10px; padding: 0 5px; border-radius: 8px; margin-left: 4px;
+  background: color-mix(in srgb, var(--good) 22%, transparent);
+}
+
+/* Section: Tooltip
+   One floating tooltip for every hover target. */
+.tip {
+  position: fixed; z-index: 10; pointer-events: none; max-width: min(240px, calc(100vw - 16px)); box-sizing: border-box;
+  padding: 6px 8px; border-radius: 4px; font-size: 11px; white-space: pre-line;
+  background: var(--vscode-editorHoverWidget-background, var(--vscode-editor-background, #252526)); color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--grid));
+}
+
+/* Section: Context mix
+   One stacked line (2px surface gaps between segments) and a two-column legend in text ink. */
+.mix { margin-top: 10px; }
+.mix .stack { display: flex; gap: 2px; height: 8px; margin: 4px 0 6px; border-radius: 4px; overflow: hidden; }
+.mix .stack > div { min-width: 2px; cursor: pointer; }
+.mix .stack > div:hover { filter: brightness(1.2); }
+.mix .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
+.mix .item { display: flex; align-items: center; gap: 6px; min-width: 0; cursor: pointer; }
+.mix .item:hover .name { text-decoration: underline; }
+.mix .sw { flex: none; width: 8px; height: 8px; border-radius: 2px; }
+.mix .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Section: Break-even chart
+   Two 2px lines (carry on = neutral like the "now" bar, hand off = series blue), a dashed
+   break-even marker, recessive axis, and a hover guide per message. */
+.breakeven { margin-top: 10px; }
+.breakeven .keys { display: inline-flex; align-items: center; gap: 4px; }
+.breakeven .key { display: inline-block; width: 12px; height: 2px; border-radius: 1px; margin-left: 6px; }
+.breakeven .key.carry, .bk .carry { --c: color-mix(in srgb, var(--vscode-foreground) 45%, transparent); }
+.breakeven .key.hand, .bk .hand, .bk .hand-dot { --c: var(--series); }
+.breakeven .key { background: var(--c); }
+.bk { display: block; margin-top: 4px; overflow: visible; }
+.bk .carry, .bk .hand { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.bk .hand-dot { fill: var(--c); stroke: var(--surface); stroke-width: 2; }
+.bk .axis { stroke: var(--grid); stroke-width: 1; }
+.bk .even { stroke: var(--grid); stroke-dasharray: 3 3; }
+.bk .tick { fill: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.bk .guide { stroke: var(--vscode-foreground); stroke-opacity: 0; stroke-width: 1; }
+.bk .col:hover .guide { stroke-opacity: .35; }

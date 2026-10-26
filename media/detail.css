@@ -1,0 +1,26 @@
+/* Section: Detail tab
+   Loaded after view.css (tokens and part colors): editor background, chips, and a sortable table. */
+body { --surface: var(--vscode-editor-background); padding: 16px 24px 32px; max-width: 1100px; }
+h1 { font-size: 16px; margin: 0 0 4px; }
+h2 { font-size: 13px; margin: 18px 0 2px; }
+h2 .muted { font-weight: 400; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; cursor: pointer;
+  font: inherit; font-size: 12px; color: var(--vscode-foreground); background: var(--track); border: 1px solid transparent;
+}
+.chip.on { border-color: var(--vscode-focusBorder); font-weight: 600; }
+.chip .sw { width: 8px; height: 8px; border-radius: 2px; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 8px; border-bottom: 1px solid var(--grid); cursor: pointer; user-select: none; }
+td { padding: 3px 8px; border-bottom: 1px solid var(--track); }
+th.num, td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.label { max-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--vscode-editor-font-family); }
+td.label .path { display: flex; min-width: 0; }
+td.label .dir { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.label .path .file { flex: none; }
+tbody tr:hover { background: var(--track); }
+.intro { max-width: 760px; margin: 10px 0 0; line-height: 1.45; }
+.about { max-width: 760px; margin: 4px 0 0; line-height: 1.45; color: var(--muted); }

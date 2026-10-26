@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Claude Session Monitor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: a reading column that widens for the flag board; visuals carry the story, text stays short.
+     Signal colors (good/warning/serious/critical) are reserved for the four advice levels; info uses the accent. */
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --fg: #1b2230;
+    --muted: #5a6475;
+    --line: #dde2ea;
+    --accent: #2457a6;
+    --bar: #8fb0dd;
+    --good: #0ca30c;
+    --warning: #e09a00;
+    --serious: #e0703f;
+    --critical: #d03b3b;
+    --status-bg: #2c3a52;
+    --status-fg: #ffffff;
+    --display: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+    --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11151c; --surface: #19202a; --fg: #e8ecf2; --muted: #a3adbd; --line: #2b3341;
+      --accent: #7aa7ec; --bar: #4e6f9e; --status-bg: #22304a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11151c; --surface: #19202a; --fg: #e8ecf2; --muted: #a3adbd; --line: #2b3341;
+    --accent: #7aa7ec; --bar: #4e6f9e; --status-bg: #22304a;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+  .page {
+    max-width: 62rem; margin: 0 auto;
+    padding-block: 2.5rem 4rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 3rem;
+  }
+  h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(2rem, 5vw, 2.7rem); line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 1.4rem; }
+  h3 { font-size: 1.02rem; }
+  p { margin: 0; }
+  .eyebrow { font-family: var(--display); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .muted { color: var(--muted); }
+  section { display: grid; gap: 1.25rem; }
+  .section-head { display: grid; gap: 0.35rem; max-width: 42rem; }
+
+  /* Hero */
+  .hero { display: grid; gap: 1.25rem; }
+  .lede { font-size: 1.15rem; color: var(--muted); max-width: 40rem; }
+  .statusbar {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    background: var(--status-bg); color: var(--status-fg);
+    border-radius: 8px; padding: 0.55rem 0.9rem; font-size: 0.92rem; max-width: 40rem;
+  }
+  .statusbar .pill {
+    display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600;
+    background: var(--serious); color: #1b1206; border-radius: 4px; padding: 0.1rem 0.55rem;
+  }
+  .statusbar .sep { opacity: 0.5; }
+  .caption { font-size: 0.85rem; color: var(--muted); }
+
+  /* Signal ladder */
+  .ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+  .step {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 0.9rem 1rem; display: grid; gap: 0.4rem; align-content: start;
+    border-top: 4px solid var(--c);
+  }
+  .step .name { font-family: var(--display); font-weight: 600; display: flex; gap: 0.5rem; align-items: center; }
+  .step p { font-size: 0.9rem; color: var(--muted); }
+
+  /* Cost chart */
+  .chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.25rem; display: grid; gap: 1rem; }
+  .chart-wrap { overflow-x: auto; }
+  .chart-wrap svg { display: block; width: 100%; min-width: 30rem; height: auto; }
+  .story { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .story div { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; align-items: start; font-size: 0.93rem; }
+  .num {
+    width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center;
+    background: var(--fg); color: var(--bg); font-family: var(--display); font-weight: 700; font-size: 0.85rem;
+  }
+
+  /* Flag board */
+  .group { display: grid; gap: 0.6rem; }
+  .group-title { font-family: var(--display); font-weight: 600; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .board-head, .flag { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 0 1.75rem; }
+  .board-head { padding: 0 1rem; font-family: var(--display); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .flag {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 0.9rem 1rem; border-left: 5px solid var(--c);
+  }
+  .flag > div { min-width: 0; position: relative; }
+  .flag .see { display: grid; gap: 0.2rem; }
+  .flag .see h3 { display: flex; align-items: center; gap: 0.5rem; }
+  .flag .see p, .flag .why p { color: var(--muted); font-size: 0.93rem; }
+  .flag .do p { font-weight: 600; font-size: 0.95rem; }
+  .flag .do::before, .flag .why::before {
+    content: "→"; position: absolute; left: -1.3rem; top: 0; color: var(--muted); font-weight: 600;
+  }
+  .label { display: none; font-family: var(--display); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--c); flex: none; }
+  .tag { font-family: var(--body); font-weight: 600; font-size: 0.75rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 0.5rem; }
+
+  /* Closing strip */
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .fact { border-top: 2px solid var(--accent); padding-top: 0.75rem; display: grid; gap: 0.3rem; }
+  .fact p { color: var(--muted); font-size: 0.93rem; }
+
+  @media (max-width: 760px) {
+    .ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .story, .facts { grid-template-columns: 1fr; }
+    .board-head { display: none; }
+    .flag { grid-template-columns: 1fr; gap: 0.7rem; }
+    .flag .do::before, .flag .why::before { content: none; }
+    .label { display: block; margin-bottom: 0.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<main class="page">
+  <header class="hero">
+    <span class="eyebrow">Internal tool · for Claude Code users</span>
+    <h1>Claude Session Monitor</h1>
+    <p class="lede">A small VS Code add-on that shows what each Claude Code conversation is costing, and tells you in plain words when to keep going, when to start fresh, and why.</p>
+    <div class="statusbar" role="img" aria-label="Example of the monitor's bar at the bottom of the editor">
+      <span class="pill"><span aria-hidden="true">▲</span> Wrap up: long conversation</span>
+      <span>conversation 33% full</span><span class="sep">·</span><span>$10.09 so far</span><span class="sep">·</span><span>next message ≈ $0.57</span>
+    </div>
+    <p class="caption">Example of the bar at the bottom of the editor. One click opens the full panel.</p>
+  </header>
+
+  <section aria-labelledby="signal">
+    <div class="section-head">
+      <h2 id="signal">One signal, four steps</h2>
+      <p class="muted">Everything the monitor notices rolls up into a single traffic light.</p>
+    </div>
+    <div class="ladder">
+      <div class="step" style="--c: var(--good)"><span class="name"><span class="dot"></span>Keep going</span><p>Nothing to worry about.</p></div>
+      <div class="step" style="--c: var(--warning)"><span class="name"><span class="dot"></span>New conversation?</span><p>Fine to continue on the same topic. Start fresh for anything new.</p></div>
+      <div class="step" style="--c: var(--serious)"><span class="name"><span class="dot"></span>Wrap up</span><p>Finish the current step, then start fresh.</p></div>
+      <div class="step" style="--c: var(--critical)"><span class="name"><span class="dot"></span>Don't send</span><p>Only send if you really need this conversation.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="costs">
+    <div class="section-head">
+      <h2 id="costs">How costs build up</h2>
+      <p class="muted">Claude re-reads the whole conversation on every reply, and keeps a low-cost copy of it for only a few minutes.</p>
+    </div>
+    <div class="chart-card">
+      <div class="chart-wrap">
+        <svg viewBox="0 0 640 230" role="img" aria-label="Illustration: cost per message rises through a conversation, spikes after a break, and drops after starting a new conversation">
+          <line x1="40" y1="190" x2="625" y2="190" stroke="var(--line)" stroke-width="1"/>
+          <text x="40" y="214" fill="var(--muted)" font-size="12" font-family="Source Sans 3, sans-serif">Each bar is one message, in order</text>
+          <text x="40" y="18" fill="var(--muted)" font-size="12" font-family="Source Sans 3, sans-serif">Cost per message (illustration)</text>
+          <g fill="var(--bar)">
+            <rect x="60" y="182.5" width="26" height="7.5" rx="3"/>
+            <rect x="96" y="179.5" width="26" height="10.5" rx="3"/>
+            <rect x="132" y="176.5" width="26" height="13.5" rx="3"/>
+            <rect x="168" y="173.5" width="26" height="16.5" rx="3"/>
+            <rect x="204" y="170.5" width="26" height="19.5" rx="3"/>
+            <rect x="240" y="167.5" width="26" height="22.5" rx="3"/>
+            <rect x="276" y="164.5" width="26" height="25.5" rx="3"/>
+            <rect x="312" y="161.5" width="26" height="28.5" rx="3"/>
+            <rect x="414" y="157" width="26" height="33" rx="3"/>
+            <rect x="450" y="154" width="26" height="36" rx="3"/>
+            <rect x="534" y="184" width="26" height="6" rx="3"/>
+            <rect x="570" y="182.5" width="26" height="7.5" rx="3"/>
+          </g>
+          <rect x="378" y="47.5" width="26" height="142.5" rx="3" fill="var(--critical)"/>
+          <text x="357" y="186" fill="var(--muted)" font-size="11" text-anchor="middle" font-family="Source Sans 3, sans-serif">break</text>
+          <line x1="510" y1="40" x2="510" y2="190" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="516" y="52" fill="var(--muted)" font-size="12" font-family="Source Sans 3, sans-serif">new conversation</text>
+          <g font-family="Instrument Sans, sans-serif" font-size="12" font-weight="700" text-anchor="middle">
+            <circle cx="186" cy="140" r="11" fill="var(--fg)"/><text x="186" y="144" fill="var(--bg)">1</text>
+            <circle cx="391" cy="30" r="11" fill="var(--fg)"/><text x="391" y="34" fill="var(--bg)">2</text>
+            <circle cx="565" cy="150" r="11" fill="var(--fg)"/><text x="565" y="154" fill="var(--bg)">3</text>
+          </g>
+        </svg>
+      </div>
+      <div class="story">
+        <div><span class="num">1</span><p><strong>Cost creeps up.</strong> Every reply re-reads everything said so far, so each message costs a bit more than the last.</p></div>
+        <div><span class="num">2</span><p><strong>A break makes it jump.</strong> After a few minutes away, the low-cost copy expires and the next message reloads it all at full price.</p></div>
+        <div><span class="num">3</span><p><strong>Starting fresh resets it.</strong> A new conversation with a short summary costs a fraction of continuing.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="flags">
+    <div class="section-head">
+      <h2 id="flags">What it flags, and what to do</h2>
+      <p class="muted">Each flag explains itself in the panel. The color shows how far it moves the signal.</p>
+    </div>
+
+    <div class="board-head" aria-hidden="true"><span>What you see</span><span>What to do</span><span>Why it helps</span></div>
+
+    <div class="group">
+      <span class="group-title">The conversation is getting long</span>
+      <article class="flag" style="--c: var(--warning)">
+        <div class="see"><h3><span class="dot"></span>Long conversation</h3><p>You've covered a lot of ground in one chat.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Continue only if it's the same topic. New topic? Start a new conversation.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Old, unrelated history is paid for again on every message.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--warning)">
+        <div class="see"><h3><span class="dot"></span>Large conversation</h3><p>The conversation has grown big.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Same task: ask Claude to shorten the history (/compact). New task: start fresh.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Every reply costs more just to re-read it all.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--serious)">
+        <div class="see"><h3><span class="dot"></span>Almost full</h3><p>Claude is near the most it can hold at once.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Ask for a short handoff note, start a new conversation, paste it in.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Claude gets less precise when full, and replies cost the most.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--critical)">
+        <div class="see"><h3><span class="dot"></span>Over your limit</h3><p>This conversation passed the spending limit you set.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Finish the step, ask for a 3-line summary, start fresh with it.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Stops one conversation from quietly running up the bill.</p></div>
+      </article>
+    </div>
+
+    <div class="group">
+      <span class="group-title">Breaks and timing</span>
+      <article class="flag" style="--c: var(--accent)">
+        <div class="see"><h3><span class="dot"></span>Five-minute timer <span class="tag">info</span></h3><p>A countdown until the low-cost copy expires.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Put follow-up questions in one message and reply before it runs out.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Replying in time keeps every message at the low price.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--critical)">
+        <div class="see"><h3><span class="dot"></span>Timer ran out</h3><p>The panel turns red after a break.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Start a new conversation with a 2–3 line summary instead of continuing.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Continuing reloads the whole conversation at full price.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--warning)">
+        <div class="see"><h3><span class="dot"></span>Timer ran out several times</h3><p>A running count of breaks and what they cost.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Take breaks at natural stopping points, then start fresh.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Each expiry pays for the whole conversation again.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--serious)">
+        <div class="see"><h3><span class="dot"></span>Woken up while you were away</h3><p>Background helpers finished after the timer ran out.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Wait for helpers to finish before stepping away, or stop them first (Esc).</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Each late wake-up reloads everything at full price.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--warning)">
+        <div class="see"><h3><span class="dot"></span>Unexpected reset</h3><p>The low-cost copy was thrown away mid-conversation.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Pick your model and settings at the start; don't switch midway.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Switching discards the copy and pays to rebuild it.</p></div>
+      </article>
+    </div>
+
+    <div class="group">
+      <span class="group-title">While Claude is working</span>
+      <article class="flag" style="--c: var(--serious)">
+        <div class="see"><h3><span class="dot"></span>Runaway task</h3><p>One request has turned into dozens of steps.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Press Esc to pause, check what it's doing, and steer it.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Pausing keeps all progress and stops costs piling up on a wrong path.</p></div>
+      </article>
+      <article class="flag" style="--c: var(--warning)">
+        <div class="see"><h3><span class="dot"></span>Expensive helper</h3><p>A helper Claude started is costing a lot.</p></div>
+        <div class="do"><span class="label">What to do</span><p>Give helpers small, focused jobs.</p></div>
+        <div class="why"><span class="label">Why it helps</span><p>Each helper runs its own conversation and bill.</p></div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="facts">
+    <h2 id="facts">The big picture</h2>
+    <div class="facts">
+      <div class="fact"><h3>The goal</h3><p>Lower weekly spend and better habits, without slowing anyone down.</p></div>
+      <div class="fact"><h3>Safe and free to run</h3><p>Runs on your own computer, sends nothing anywhere, and adds no cost.</p></div>
+      <div class="fact"><h3>Next steps</h3><p>Pilot with a small group, agree on team defaults, then share widely.</p></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
